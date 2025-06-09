@@ -148,3 +148,140 @@ test.describe('Petstore API Tests', () => {
   });
 });
 
+test.describe('Petstore API Tests', () => {
+  test('Get pet by ID', async ({ request }) => {
+    // First create a pet to get
+    const petData = {
+      id: 789,
+      category: { id: 3, name: 'Birds' },
+      name: 'Polly',
+      photoUrls: ['https://example.com/bird-photo.jpg'],
+      tags: [{ id: 3, name: 'colorful' }],
+      status: 'available'
+    };
+
+    const createResponse = await request.post('https://petstore.swagger.io/v2/pet', {
+      data: petData
+    });
+
+    expect(createResponse.ok()).toBeTruthy();
+    const createdPet = await createResponse.json();
+    const petId = createdPet.id;
+
+    // Now get the pet by ID
+    const getResponse = await request.get(`https://petstore.swagger.io/v2/pet/${petId}`);
+    const retrievedPet = await getResponse.json();
+    
+    // Verify the retrieved pet matches our created pet
+    expect(retrievedPet.id).toBe(petData.id);
+    expect(retrievedPet.name).toBe(petData.name);
+    expect(retrievedPet.status).toBe(petData.status);
+    
+    console.log('Retrieved Pet:', retrievedPet);
+  });
+});
+
+test.describe('Petstore API Tests', () => {
+  test('Find pets by tags', async ({ request }) => {
+    // First create multiple pets with different tags
+    const pets = [
+      {
+        id: 101,
+        category: { id: 4, name: 'Dogs' },
+        name: 'Rex',
+        photoUrls: ['https://example.com/dog1.jpg'],
+        tags: [{ id: 4, name: 'friendly' }, { id: 5, name: 'active' }],
+        status: 'available'
+      },
+      {
+        id: 102,
+        category: { id: 4, name: 'Dogs' },
+        name: 'Buddy',
+        photoUrls: ['https://example.com/dog2.jpg'],
+        tags: [{ id: 4, name: 'friendly' }, { id: 6, name: 'calm' }],
+        status: 'available'
+      }
+    ];
+
+    // Create the pets
+    for (const pet of pets) {
+      const response = await request.post('https://petstore.swagger.io/v2/pet', {
+        data: pet
+      });
+      expect(response.ok()).toBeTruthy();
+    }
+
+    // Find pets by the 'friendly' tag
+    const findResponse = await request.get('https://petstore.swagger.io/v2/pet/findByTags?tags=friendly');
+    expect(findResponse.ok()).toBeTruthy();
+    const foundPets = await findResponse.json();
+    
+    // Verify we found pets with the 'friendly' tag
+    expect(Array.isArray(foundPets)).toBeTruthy();
+    expect(foundPets.length).toBeGreaterThan(0);
+    foundPets.forEach(pet => {
+      expect(pet.tags.some(tag => tag.name === 'friendly')).toBeTruthy();
+    });
+    
+    console.log('Found Pets by Tag:', foundPets);
+  });
+});
+
+test.describe('Petstore API Tests', () => {
+  test('Upload pet image', async ({ request }) => {
+    // First create a pet
+    const petData = {
+      id: 201,
+      category: { id: 5, name: 'Cats' },
+      name: 'Mittens',
+      photoUrls: [],
+      tags: [{ id: 7, name: 'cute' }],
+      status: 'available'
+    };
+
+    const createResponse = await request.post('https://petstore.swagger.io/v2/pet', {
+      data: petData
+    });
+
+    expect(createResponse.ok()).toBeTruthy();
+    const createdPet = await createResponse.json();
+    const petId = createdPet.id;
+
+    // Upload an image for the pet
+    const formData = new FormData();
+    formData.append('file', new Blob(['test image content'], { type: 'image/jpeg' }), 'test-image.jpg');
+    formData.append('additionalMetadata', 'Test image upload');
+
+    const uploadResponse = await request.post(`https://petstore.swagger.io/v2/pet/${petId}/uploadImage`, {
+      multipart: formData
+    });
+
+    expect(uploadResponse.ok()).toBeTruthy();
+    const uploadResult = await uploadResponse.json();
+    console.log('Image Upload Result:', uploadResult);
+  });
+});
+
+test.describe('Petstore API Tests', () => {
+  test('Get pet inventory by different statuses', async ({ request }) => {
+    // Test getting pets with different statuses
+    const statuses = ['available', 'pending', 'sold'];
+    
+    for (const status of statuses) {
+      const response = await request.get(`https://petstore.swagger.io/v2/pet/findByStatus?status=${status}`);
+      expect(response.ok()).toBeTruthy();
+      const pets = await response.json();
+      
+      // Verify we got an array of pets
+      expect(Array.isArray(pets)).toBeTruthy();
+      
+      // Verify all pets have the correct status
+      pets.forEach(pet => {
+        expect(pet.status).toBe(status);
+      });
+      
+      console.log(`Pets with status '${status}':`, pets);
+    }
+  });
+});
+
